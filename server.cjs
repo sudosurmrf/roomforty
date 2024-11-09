@@ -10,6 +10,7 @@ const app = express();
 const cors = require('cors');
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use(cors());
 
 // Serve static files from 'dist' directory
 app.use(express.static(path.join(__dirname, 'dist')));
@@ -17,7 +18,6 @@ app.use(express.static(path.join(__dirname, 'dist')));
 // Serve the 'uploads' directory statically
 app.use('/uploads', express.static(path.join(__dirname, 'dist', 'uploads')));
 
-app.use(cors());
 // Middleware to log route access
 app.use((req, res, next) => {
     console.log(`Route hit: ${req.method} ${req.path}`);
@@ -25,11 +25,6 @@ app.use((req, res, next) => {
 });
 
 // Cache setup
-const cacheFilePath = path.join(__dirname, 'hashCache.json');
-let hashCache = {};
-if (fs.existsSync(cacheFilePath)) {
-    hashCache = JSON.parse(fs.readFileSync(cacheFilePath, 'utf-8'));
-}
 // Ensure the uploads directory exists
 const uploadsDir = path.join(__dirname, 'dist', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -37,6 +32,11 @@ if (!fs.existsSync(uploadsDir)) {
     console.log('dist/uploads directory created.');
 }
 
+const cacheFilePath = path.join(__dirname, 'hashCache.json');
+let hashCache = {};
+if (fs.existsSync(cacheFilePath)) {
+    hashCache = JSON.parse(fs.readFileSync(cacheFilePath, 'utf-8'));
+}
 async function getImageHash(filePath) {
     const fileName = path.basename(filePath);
     if (hashCache[fileName]) {
@@ -162,10 +162,11 @@ app.post('/mms', async (req, res) => {
         res.status(400).send('No media found in the request');
     }
 });
-
-app.use((req, res, next) => {
-    res.status(404).send('Sorry, we could not find that page.');
-});
+// Serve React App for All Other GET Requests
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  });
+  
 // Error Handling Middleware
 app.use((err, req, res, next) => {
     console.error('Unhandled error:', err);
