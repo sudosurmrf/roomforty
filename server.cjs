@@ -7,6 +7,7 @@ const imghash = require('imghash');
 const sizeOf = require('image-size');
 
 const app = express();
+const cors = require('cors');
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
@@ -15,7 +16,7 @@ app.use(express.static(path.join(__dirname, 'dist')));
 
 // Serve the 'uploads' directory statically
 app.use('/uploads', express.static(path.join(__dirname, 'dist', 'uploads')));
-const cors = require('cors');
+
 app.use(cors());
 // Middleware to log route access
 app.use((req, res, next) => {
@@ -23,6 +24,12 @@ app.use((req, res, next) => {
     next();
 });
 
+// Cache setup
+const cacheFilePath = path.join(__dirname, 'hashCache.json');
+let hashCache = {};
+if (fs.existsSync(cacheFilePath)) {
+    hashCache = JSON.parse(fs.readFileSync(cacheFilePath, 'utf-8'));
+}
 // Ensure the uploads directory exists
 const uploadsDir = path.join(__dirname, 'dist', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -30,7 +37,6 @@ if (!fs.existsSync(uploadsDir)) {
     console.log('dist/uploads directory created.');
 }
 
-// Function to compute image hash
 async function getImageHash(filePath) {
     const fileName = path.basename(filePath);
     if (hashCache[fileName]) {
@@ -60,21 +66,13 @@ function hammingDistance(hash1, hash2) {
     return distance;
 }
 
-// Cache setup
-const cacheFilePath = path.join(__dirname, 'hashCache.json');
-let hashCache = {};
-if (fs.existsSync(cacheFilePath)) {
-    hashCache = JSON.parse(fs.readFileSync(cacheFilePath, 'utf-8'));
-}
-
-// Gallery route
-app.get('/gallery', async (req, res) => {
+app.get('/api/photos', async (req, res) => {
     const uploadsDir = path.join(__dirname, 'dist', 'uploads');
 
     fs.readdir(uploadsDir, async (err, files) => {
         if (err) {
             console.error('Error reading uploads directory:', err);
-            return res.status(500).send('Error loading gallery');
+            return res.status(500).json({ error: 'Error loading photos' });
         }
 
         const imageFiles = files.filter(file => /\.(jpg|jpeg|png|gif)$/i.test(file));
@@ -90,7 +88,7 @@ app.get('/gallery', async (req, res) => {
         const validImages = imageData.filter(data => data.hash !== null);
 
         if (validImages.length === 0) {
-            return res.send('No valid images found.');
+            return res.json([]);
         }
 
         // Select a reference image (e.g., the first image)
@@ -104,43 +102,16 @@ app.get('/gallery', async (req, res) => {
         // Sort images by distance (similarity)
         validImages.sort((a, b) => a.distance - b.distance);
 
-        // Generate HTML content
-        let html = `
-            <html>
-            <head>
-                <title>Image Gallery</title>
-                <style>
-                    body { font-family: Arial, sans-serif; }
-                    .gallery { display: flex; flex-wrap: wrap; }
-                    .gallery-item { margin: 10px; text-align: center; }
-                    .gallery-item img { max-width: 200px; max-height: 200px; }
-                </style>
-            </head>
-            <body>
-                <h1>Image Gallery</h1>
-                <div class="gallery">
-        `;
+        // Map image data to response format
+        const photos = validImages.map(data => ({
+            url: `/uploads/${data.file}`,
+            caption: `Distance: ${data.distance}`,
+            distance: data.distance,
+        }));
 
-        validImages.forEach(data => {
-            const imageUrl = `/uploads/${data.file}`;
-            html += `
-                <div class="gallery-item">
-                    <img src="${imageUrl}" alt="Image">
-                    <p>Distance: ${data.distance}</p>
-                </div>
-            `;
-        });
-
-        html += `
-                </div>
-            </body>
-            </html>
-        `;
-
-        res.send(html);
+        res.json(photos);
     });
 });
-
 
 app.get('/', (req, res) => {
     const filePath = path.join(__dirname, 'dist', 'index.html');
