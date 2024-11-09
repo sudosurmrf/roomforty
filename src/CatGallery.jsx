@@ -30,7 +30,7 @@ const CatGallery = () => {
     }, []);
 
     return (
-      <div>
+      <div className="container">
         <h1>Cat Photo Gallery</h1>
         <div className="gallery">
           {photos.length > 0 ? (
@@ -46,7 +46,6 @@ const CatGallery = () => {
         </div>
       </div>
     );
-    
-};
-
-export default CatGallery;
+  };
+  
+  export default CatGallery;

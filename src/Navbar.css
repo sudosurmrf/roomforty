@@ -1,36 +1,39 @@
-/* Navbar.css */
-
+/* Navbar Styles */
 .cute-navbar {
-  background-color: #ffe4e1;
   display: flex;
   align-items: center;
-  padding: 10px 20px;
-  position: relative;
-  font-family: 'Quicksand', sans-serif;
+  background-color: rgba(255, 255, 255, 0.6); /* Semi-transparent white */
+  backdrop-filter: blur(5px); /* Adds a blur effect */
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+  padding: 5px 20px;
+  box-sizing: border-box;
 }
 
 .navbar-logo {
   display: flex;
   align-items: center;
-  
 }
 
 .navbar-logo img {
-  height: 50px;
+  height: 40px; /* Reduced height */
   margin-right: 10px;
   border-radius: 40%;
 }
 
 .navbar-logo span {
-  font-size: 2em;
-  color: #ff69b4;
+  font-size: 1.5rem; /* Reduced font size */
+  color: #a64d79;
   font-family: 'Pacifico', cursive;
 }
 
 .navbar-menu {
   list-style: none;
   display: flex;
-  margin-left: auto;
+  margin-left: auto; /* Pushes menu to the right */
+  align-items: center;
 }
 
 .navbar-menu li {
@@ -39,7 +42,7 @@
 
 .navbar-menu a {
   text-decoration: none;
-  color: #ff69b4;
+  color: #a64d79;
   font-size: 1.1em;
   display: flex;
   align-items: center;
@@ -47,19 +50,7 @@
 }
 
 .navbar-menu a:hover {
-  color: #db5a97;
-}
-
-.navbar-menu i {
-  margin-right: 8px;
-}
-
-.navbar-toggle {
-  display: none;
-}
-.menu-icon {
-  width: 30px;
-  height: 30px;
+  color: #b56491;
 }
 
 .nav-icon {
@@ -68,28 +59,38 @@
   margin-right: 8px;
 }
 
-
-.navbar-toggle-label {
+.navbar-toggle {
   display: none;
-  position: absolute;
-  right: 20px;
-  font-size: 2em;
-  color: #ff69b4;
+  background: none;
+  border: none;
   cursor: pointer;
+}
+
+.menu-icon {
+  width: 30px;
+  height: 30px;
 }
 
 /* Responsive Styles */
 @media (max-width: 768px) {
+  .navbar-toggle {
+    display: block;
+    margin-left: auto; /* Moves toggle to the right */
+  }
+
   .navbar-menu {
+    display: none; /* Hide menu by default */
+  }
+
+  .navbar-menu.active {
+    display: flex;
     flex-direction: column;
     position: absolute;
-    top: 70px;
+    top: 60px; /* Adjusted to align under navbar */
     right: 0;
     background-color: #ffe4e1;
     width: 100%;
-    max-height: 0;
     overflow: hidden;
-    transition: max-height 0.3s ease-in-out;
   }
 
   .navbar-menu li {
@@ -97,15 +98,7 @@
     text-align: center;
   }
 
-  .navbar-toggle {
-    display: block;
-  }
-
-  .navbar-toggle-label {
-    display: block;
-  }
-
-  .navbar-toggle:checked ~ .navbar-menu {
-    max-height: 200px;
+  .navbar-menu a {
+    justify-content: center;
   }
 }
