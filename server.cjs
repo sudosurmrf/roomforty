@@ -21,6 +21,10 @@ if (!fs.existsSync(uploadsDir)) {
     console.log('dist/uploads directory created.');
 }
 
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
 // Endpoint to receive MMS from Twilio
 app.post('/mms', async (req, res) => {
     const { From, Body } = req.body;
