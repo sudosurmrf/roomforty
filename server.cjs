@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
+const path = require('path');
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -13,6 +14,13 @@ app.use((req, res, next) => {
     next();
 });
 
+// Ensure the dist/uploads directory exists
+const uploadsDir = path.join(__dirname, 'dist', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('dist/uploads directory created.');
+}
+
 // Endpoint to receive MMS from Twilio
 app.post('/mms', async (req, res) => {
     const { From, Body } = req.body;
@@ -20,18 +28,14 @@ app.post('/mms', async (req, res) => {
 
     if (mediaUrl) {
         try {
-            // Fetch the media with basic authentication
-            const response = await fetch(mediaUrl, {
-                headers: {
-                    'Authorization': 'Basic ' + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64')
-                }
-            });
+            // Fetch the media using the native fetch API
+            const response = await fetch(mediaUrl);
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch media: ${response.statusText}`);
             }
 
-            const filename = `uploads/${Date.now()}-${From.replace('+', '')}.jpg`;
+            const filename = `dist/uploads/${Date.now()}-${From.replace('+', '')}.jpg`;
             const fileStream = fs.createWriteStream(filename);
 
             // Pipe the response body directly to the file system
