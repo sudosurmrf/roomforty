@@ -1,13 +1,26 @@
 .gallery {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
+  top: 10%;
 }
-
+.container * {
+  position: relative;
+  top: 50px;
+}
 .photo-card {
-  margin: 10px;
+  margin: 15px;
+  text-align: center;
+  width: 250px;
 }
 
 .photo-card img {
-  max-width: 200px;
-  max-height: 200px;
+  width: 100%;
+  border-radius: 15px;
+}
+
+.photo-card p {
+  margin-top: 10px;
+  font-family: 'Quicksand', sans-serif;
+  color: #a64d79;
 }
