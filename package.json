@@ -12,6 +12,7 @@
     "postbuild": "mkdir -p dist/uploads"
   },
   "dependencies": {
+    "@prisma/client": "^5.22.0",
     "aws-sdk": "^2.1692.0",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
@@ -37,6 +38,7 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.14",
     "globals": "^15.11.0",
+    "prisma": "^5.22.0",
     "vite": "^5.4.10"
   }
 }
