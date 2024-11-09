@@ -2,10 +2,17 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
+const fetch = require('node-fetch');
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+
+// Middleware to log route access
+app.use((req, res, next) => {
+    console.log(`Route hit: ${req.method} ${req.path}`);
+    next();
+});
 
 // Endpoint to receive MMS from Twilio
 app.post('/mms', async (req, res) => {
