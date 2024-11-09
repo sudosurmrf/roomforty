@@ -14,7 +14,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// Ensure the dist/uploads directory exists
+// Ensure the uploads directory exists
 const uploadsDir = path.join(__dirname, 'dist', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
@@ -39,21 +39,14 @@ app.post('/mms', async (req, res) => {
                 throw new Error(`Failed to fetch media: ${response.statusText}`);
             }
 
+            // Read the response as a buffer
+            const buffer = await response.buffer();
             const filename = `dist/uploads/${Date.now()}-${From.replace('+', '')}.jpg`;
-            const fileStream = fs.createWriteStream(filename);
 
-            // Pipe the response body directly to the file system
-            response.body.pipe(fileStream);
-
-            response.body.on('end', () => {
-                console.log(`Saved media: ${filename}`);
-                res.status(200).send('File received and saved');
-            });
-
-            response.body.on('error', (err) => {
-                console.error('Error saving media:', err);
-                res.status(500).send('Failed to save media');
-            });
+            // Write the buffer to a file
+            fs.writeFileSync(filename, buffer);
+            console.log(`Saved media: ${filename}`);
+            res.status(200).send('File received and saved');
         } catch (error) {
             console.error('Error downloading media:', error);
             res.status(500).send('Error processing the media');
