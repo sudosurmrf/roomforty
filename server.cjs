@@ -40,7 +40,11 @@ app.post('/mms', async (req, res) => {
             }
 
             // Read the response as a buffer
-            const buffer = await response.buffer();
+            // Read the response as an array buffer and convert it to a Node.js buffer
+            const arrayBuffer = await response.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+
+
             const filename = `dist/uploads/${Date.now()}-${From.replace('+', '')}.jpg`;
 
             // Write the buffer to a file
