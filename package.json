@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "node server.cjs"
+    "start": "node server.cjs",
+    "postbuild": "mkdir -p dist/uploads"
   },
   "dependencies": {
     "aws-sdk": "^2.1692.0",
