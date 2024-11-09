@@ -1,0 +1,95 @@
+/* HomePage.css */
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #fdf6f0;
+  margin: 0;
+  padding: 0;
+  color: #333;
+}
+
+.homepage-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  text-align: center;
+}
+
+.homepage-header {
+  background: linear-gradient(90deg, #ff8c94, #ffaaa5);
+  padding: 40px;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.homepage-header h1 {
+  font-size: 3rem;
+  color: #fff;
+  margin: 0;
+}
+
+.homepage-subtitle {
+  font-size: 1.2rem;
+  color: #fff;
+  margin-top: 10px;
+}
+
+.hello-kitty-section, .cats-section {
+  margin-top: 50px;
+}
+
+.hello-kitty-image-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.hello-kitty-image {
+  width: 300px;
+  border-radius: 50%;
+  border: 5px solid #ffaaa5;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.cats-section h2 {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+}
+
+.cats-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
+.cat-card {
+  background-color: #ffe0e9;
+  padding: 15px;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+  width: 250px;
+}
+
+.cat-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.cat-image {
+  width: 100%;
+  border-radius: 10px;
+  border: 3px solid #ff8c94;
+}
+
+.cat-name {
+  font-size: 1.5rem;
+  margin-top: 10px;
+  color: #ff5a5f;
+}
+
+.cat-details {
+  font-size: 1rem;
+  color: #333;
+}

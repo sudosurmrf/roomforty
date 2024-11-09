@@ -1,11 +1,11 @@
 import React from 'react';
-import './HomePage.css'; // Include custom CSS for styling
+import './HomePage.css';
 
 const cats = [
-    { name: "Puff", color: "Orange", favoriteActivity: "Eating", image: "puff.jpg" },
-    { name: "Gotham", color: "Black", favoriteActivity: "Sleeping", image: "gotham.jpg" },
-    { name: "Stella", color: "Cute", favoriteActivity: "String", image: "stella.jpg" },
-    { name: "Bud", color: "Tuxedo", favoriteActivity: "Bullying", image: "bud.jpg" }
+    { name: "Puff", color: "Orange", favoriteActivity: "Eating", image: "/assets/puff.jpg" },
+    { name: "Gotham", color: "Black", favoriteActivity: "Sleeping", image: "/assets/gotham.jpg" },
+    { name: "Stella", color: "Cute", favoriteActivity: "String", image: "/assets/stella.jpg" },
+    { name: "Bud", color: "Tuxedo", favoriteActivity: "Bullying", image: "/assets/bud.jpg" }
 ];
 
 function HomePage() {
@@ -20,7 +20,7 @@ function HomePage() {
                 <h2>Hello Kitty Corner</h2>
                 <div className="hello-kitty-image-container">
                     <img 
-                        src="/images/hello-kitty.png" 
+                        src="/assets/bud.jpg" 
                         alt="Hello Kitty" 
                         className="hello-kitty-image"
                     />
@@ -33,7 +33,7 @@ function HomePage() {
                     {cats.map((cat, index) => (
                         <div key={index} className="cat-card">
                             <img 
-                                src={`/assets/${cat.image}`} 
+                                src={cat.image} 
                                 alt={cat.name} 
                                 className="cat-image"
                             />
