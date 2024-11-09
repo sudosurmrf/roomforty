@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import HomePage from './Homepage'
+import { useState } from 'react';
+import HomePage from './HomePage.jsx';
 
 
 function App() {
