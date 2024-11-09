@@ -8,6 +8,9 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
+// Serve static files from 'dist' directory
+app.use(express.static(path.join(__dirname, 'dist')));
+
 // Middleware to log route access
 app.use((req, res, next) => {
     console.log(`Route hit: ${req.method} ${req.path}`);
@@ -22,7 +25,14 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    const filePath = path.join(__dirname, 'dist', 'index.html');
+    console.log('Sending file:', filePath);
+    res.sendFile(filePath, (err) => {
+        if (err) {
+            console.error('Error sending file:', err);
+            res.status(err.status || 500).send('Error loading the page.');
+        }
+    });
 });
 
 // Endpoint to receive MMS from Twilio
@@ -64,6 +74,16 @@ app.post('/mms', async (req, res) => {
     }
 });
 
+app.use((req, res, next) => {
+    res.status(404).send('Sorry, we could not find that page.');
+});
+// Error Handling Middleware
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    res.status(500).send('Something broke!');
+});
+
+
 app.listen(3001, () => {
-    console.log('Server running on http://localhost:3001');
+    console.log('Server running on 3001');
 });
