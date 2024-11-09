@@ -4,7 +4,6 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 const imghash = require('imghash');
-const sizeOf = require('image-size');
 const AWS = require('aws-sdk');
 const app = express();
 const cors = require('cors');
@@ -165,42 +164,50 @@ app.get('/', (req, res) => {
 
 // Endpoint to receive MMS from Twilio
 app.post('/mms', async (req, res) => {
-    const { From, Body } = req.body;
+    const { From } = req.body;
     const mediaUrl = req.body['MediaUrl0'];
-
+  
     if (mediaUrl) {
-        try {
-            // Fetch the media using the native fetch API
-            const response = await fetch(mediaUrl, {
-                headers: {
-                    'Authorization': 'Basic ' + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64')
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to fetch media: ${response.statusText}`);
-            }
-
-            // Read the response as a buffer
-            // Read the response as an array buffer and convert it to a Node.js buffer
-            const arrayBuffer = await response.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-
-
-            const filename = `dist/uploads/${Date.now()}-${From.replace('+', '')}.jpg`;
-
-            // Write the buffer to a file
-            fs.writeFileSync(filename, buffer);
-            console.log(`Saved media: ${filename}`);
-            res.status(200).send('File received and saved');
-        } catch (error) {
-            console.error('Error downloading media:', error);
-            res.status(500).send('Error processing the media');
+      try {
+        // Fetch the media using the native fetch API
+        const response = await fetch(mediaUrl, {
+          headers: {
+            'Authorization': 'Basic ' + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64')
+          }
+        });
+  
+        if (!response.ok) {
+          throw new Error(`Failed to fetch media: ${response.statusText}`);
         }
+  
+        // Read the response as a buffer
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+  
+        // Define the S3 key (filename)
+        const fileExtension = '.jpg'; // Adjust based on the actual media type if possible
+        const key = `uploads/${Date.now()}-${From.replace('+', '')}${fileExtension}`;
+  
+        // Upload the image to S3
+        const params = {
+          Bucket: S3_BUCKET,
+          Key: key,
+          Body: buffer,
+          ContentType: 'image/jpeg', // Adjust based on the actual media type
+        };
+        await s3.putObject(params).promise();
+        console.log(`Saved media to S3: ${key}`);
+  
+        res.status(200).send('File received and saved');
+      } catch (error) {
+        console.error('Error downloading or uploading media:', error);
+        res.status(500).send('Error processing the media');
+      }
     } else {
-        res.status(400).send('No media found in the request');
+      res.status(400).send('No media found in the request');
     }
-});
+  });
+  
 // Serve React App for All Other GET Requests
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
