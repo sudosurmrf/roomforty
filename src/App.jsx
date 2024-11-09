@@ -4,7 +4,7 @@ import HomePage from './HomePage.jsx'
 import CatGallery from './CatGallery.jsx';
 
 
-function App() {
+const App = () => {
 
   
 
