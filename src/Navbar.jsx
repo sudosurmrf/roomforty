@@ -7,6 +7,7 @@ import  icon2 from './icons/icon2.png';
 import  icon3 from './icons/icon3.png';
 import  icon4  from './icons/icon4.png';
 import icon5  from './icons/icon5.png';
+import icon from './icons/icon.png';
 
 const Navbar = () => {
   const [isMenuOpen, setMenuOpen] = React.useState(false);
@@ -23,7 +24,7 @@ const Navbar = () => {
     <nav className="cute-navbar">
       <div className="navbar-logo">
         <NavLink to="/" onClick={closeMenu}>
-          <img src="../public/assets/cinna.jpg" alt="Logo" />
+          <img src={icon} alt="Logo" />
           <span>Cat Haven</span>
         </NavLink>
       </div>
@@ -46,17 +47,17 @@ const Navbar = () => {
         role="menu"
       >
         <li>
-          <NavLink to="/gallery" activeClassName="active-link" onClick={closeMenu}>
+          <NavLink to="/gallery" className="active-link" onClick={closeMenu}>
             <img src={icon3} alt="Cat Icon" className="nav-icon" /> Gallery
           </NavLink>
         </li>
         <li>
-          <NavLink to="/about" activeClassName="active-link" onClick={closeMenu}>
+          <NavLink to="/about" className="active-link" onClick={closeMenu}>
             <img src={icon4} alt="Info Icon" className="nav-icon" /> About
           </NavLink>
         </li>
         <li>
-          <NavLink to="/contact" activeClassName="active-link" onClick={closeMenu}>
+          <NavLink to="/contact" className="active-link" onClick={closeMenu}>
             <img src={icon5} alt="Contact Icon" className="nav-icon" /> Contact
           </NavLink>
         </li>
