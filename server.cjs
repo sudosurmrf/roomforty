@@ -3,7 +3,6 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 
-
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -21,8 +20,12 @@ app.post('/mms', async (req, res) => {
 
     if (mediaUrl) {
         try {
-            // Fetch the media using the native fetch API
-            const response = await fetch(mediaUrl);
+            // Fetch the media with basic authentication
+            const response = await fetch(mediaUrl, {
+                headers: {
+                    'Authorization': 'Basic ' + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64')
+                }
+            });
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch media: ${response.statusText}`);
