@@ -13,15 +13,15 @@ function HomePage() {
         <div className="homepage-container">
             <header className="homepage-header">
                 <h1>Welcome to Courtnee's Cat Paradise!</h1>
-                <p className="homepage-subtitle">A delightful blend of Hello Kitty and feline love</p>
+                <p className="homepage-subtitle">A collection of her life events, memories and cats</p>
             </header>
             
             <section className="hello-kitty-section">
                 <h2>Hello Kitty Corner</h2>
                 <div className="hello-kitty-image-container">
                     <img 
-                        src="/assets/bud.jpg" 
-                        alt="Hello Kitty" 
+                        src="/assets/kitty1.jpg" 
+                        alt="hello kitty" 
                         className="hello-kitty-image"
                     />
                 </div>
