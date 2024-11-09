@@ -5,9 +5,10 @@ const fs = require('fs');
 const path = require('path');
 const imghash = require('imghash');
 const sizeOf = require('image-size');
-
+const AWS = require('aws-sdk');
 const app = express();
 const cors = require('cors');
+
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cors());
@@ -24,6 +25,15 @@ app.use((req, res, next) => {
     next();
 });
 
+AWS.config.update({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,    
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY, 
+    region: process.env.AWS_REGION,                
+  });
+  
+const s3 = new AWS.S3();
+const S3_BUCKET = process.env.S3_BUCKET_NAME;
+
 // Cache setup
 // Ensure the uploads directory exists
 const uploadsDir = path.join(__dirname, 'dist', 'uploads');
@@ -37,21 +47,39 @@ let hashCache = {};
 if (fs.existsSync(cacheFilePath)) {
     hashCache = JSON.parse(fs.readFileSync(cacheFilePath, 'utf-8'));
 }
-async function getImageHash(filePath) {
-    const fileName = path.basename(filePath);
-    if (hashCache[fileName]) {
-        return hashCache[fileName];
+async function getImageHash(key) {
+    if (hashCache[key]) {
+      return hashCache[key];
     }
     try {
-        const hash = await imghash.hash(filePath, 16);
-        hashCache[fileName] = hash;
-        fs.writeFileSync(cacheFilePath, JSON.stringify(hashCache, null, 2));
-        return hash;
+      // Fetch the image from S3
+      const params = {
+        Bucket: S3_BUCKET,
+        Key: key,
+      };
+      const data = await s3.getObject(params).promise();
+  
+      // Save the image to a temporary file
+      const tempFilePath = path.join(__dirname, 'temp', key);
+      fs.mkdirSync(path.dirname(tempFilePath), { recursive: true });
+      fs.writeFileSync(tempFilePath, data.Body);
+  
+      // Compute the hash
+      const hash = await imghash.hash(tempFilePath, 16);
+  
+      // Update the cache
+      hashCache[key] = hash;
+      fs.writeFileSync(cacheFilePath, JSON.stringify(hashCache, null, 2));
+  
+      // Clean up the temporary file
+      fs.unlinkSync(tempFilePath);
+  
+      return hash;
     } catch (error) {
-        console.error(`Error hashing image ${filePath}:`, error);
-        return null;
+      console.error(`Error hashing image ${key}:`, error);
+      return null;
     }
-}
+  }
 
 // Function to compute Hamming distance
 function hammingDistance(hash1, hash2) {
@@ -67,51 +95,62 @@ function hammingDistance(hash1, hash2) {
 }
 
 app.get('/api/photos', async (req, res) => {
-    const uploadsDir = path.join(__dirname, 'dist', 'uploads');
-
-    fs.readdir(uploadsDir, async (err, files) => {
-        if (err) {
-            console.error('Error reading uploads directory:', err);
-            return res.status(500).json({ error: 'Error loading photos' });
-        }
-
-        const imageFiles = files.filter(file => /\.(jpg|jpeg|png|gif)$/i.test(file));
-
-        const imageDataPromises = imageFiles.map(async file => {
-            const filePath = path.join(uploadsDir, file);
-            const hash = await getImageHash(filePath);
-            return { file, hash };
-        });
-
-        const imageData = await Promise.all(imageDataPromises);
-
-        const validImages = imageData.filter(data => data.hash !== null);
-
-        if (validImages.length === 0) {
-            return res.json([]);
-        }
-
-        // Select a reference image (e.g., the first image)
-        const referenceImage = validImages[0];
-
-        // Compute Hamming distances
-        validImages.forEach(data => {
-            data.distance = hammingDistance(referenceImage.hash, data.hash);
-        });
-
-        // Sort images by distance (similarity)
-        validImages.sort((a, b) => a.distance - b.distance);
-
-        // Map image data to response format
-        const photos = validImages.map(data => ({
-            url: `/uploads/${data.file}`,
-            caption: `Distance: ${data.distance}`,
-            distance: data.distance,
-        }));
-
-        res.json(photos);
-    });
-});
+    try {
+      // List objects in the S3 bucket
+      const params = {
+        Bucket: S3_BUCKET,
+        Prefix: 'uploads/', // Assuming all images are stored under 'uploads/' prefix
+      };
+      const s3Data = await s3.listObjectsV2(params).promise();
+  
+      const imageFiles = s3Data.Contents.filter(item => /\.(jpg|jpeg|png|gif)$/i.test(item.Key));
+  
+      // Get image hashes and distances
+      const imageDataPromises = imageFiles.map(async item => {
+        const key = item.Key;
+        const hash = await getImageHash(key);
+        return { key, hash };
+      });
+  
+      const imageData = await Promise.all(imageDataPromises);
+      const validImages = imageData.filter(data => data.hash !== null);
+  
+      if (validImages.length === 0) {
+        return res.json([]);
+      }
+  
+      // Select a reference image (e.g., the first image)
+      const referenceImage = validImages[0];
+  
+      // Compute Hamming distances
+      validImages.forEach(data => {
+        data.distance = hammingDistance(referenceImage.hash, data.hash);
+      });
+  
+      // Sort images by distance (similarity)
+      validImages.sort((a, b) => a.distance - b.distance);
+  
+      // Generate signed URLs for images
+      const photos = await Promise.all(validImages.map(async data => {
+        const params = {
+          Bucket: S3_BUCKET,
+          Key: data.key,
+          Expires: 3600, // URL expires in 1 hour
+        };
+        const url = s3.getSignedUrl('getObject', params);
+        return {
+          url,
+          caption: `Distance: ${data.distance}`,
+          distance: data.distance,
+        };
+      }));
+  
+      res.json(photos);
+    } catch (error) {
+      console.error('Error fetching images from S3:', error);
+      res.status(500).json({ error: 'Error loading photos' });
+    }
+  });
 
 app.get('/', (req, res) => {
     const filePath = path.join(__dirname, 'dist', 'index.html');
