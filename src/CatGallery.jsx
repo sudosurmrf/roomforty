@@ -14,7 +14,7 @@ const CatGallery = () => {
         }
         const result = await response.json();
         
-        // Sort the photos by distance
+        // Sort the photos by distance based on hamming and hashing
         result.sort((a, b) => a.distance - b.distance);
         
         setPhotos(result);
