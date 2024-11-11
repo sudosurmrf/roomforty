@@ -4,7 +4,8 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 const imghash = require('imghash');
-const AWS = require('aws-sdk');
+const { S3Client, ListObjectsV2Command, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const app = express();
 const cors = require('cors');
 
@@ -24,13 +25,15 @@ app.use((req, res, next) => {
     next();
 });
 
-AWS.config.update({
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,    
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY, 
-    region: process.env.AWS_REGION,                
-  });
-  
-const s3 = new AWS.S3();
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
+
 const S3_BUCKET = process.env.S3_BUCKET_NAME;
 
 // Cache setup
@@ -93,63 +96,78 @@ function hammingDistance(hash1, hash2) {
     return distance;
 }
 
+const { S3Client, ListObjectsV2Command, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+
+// Initialize S3 client
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
 app.get('/api/photos', async (req, res) => {
-    try {
-      // List objects in the S3 bucket
-      const params = {
-        Bucket: S3_BUCKET,
-        Prefix: 'uploads/', // Assuming all images are stored under 'uploads/' prefix
-      };
-      const s3Data = await s3.listObjectsV2(params).promise();
-  
-      const imageFiles = s3Data.Contents.filter(item => /\.(jpg|jpeg|png|gif)$/i.test(item.Key));
-  
-      // Get image hashes and distances
-      const imageDataPromises = imageFiles.map(async item => {
-        const key = item.Key;
-        const hash = await getImageHash(key);
-        return { key, hash };
-      });
-  
-      const imageData = await Promise.all(imageDataPromises);
-      const validImages = imageData.filter(data => data.hash !== null);
-  
-      if (validImages.length === 0) {
-        return res.json([]);
-      }
-  
-      // Select a reference image (e.g., the first image)
-      const referenceImage = validImages[0];
-  
-      // Compute Hamming distances
-      validImages.forEach(data => {
-        data.distance = hammingDistance(referenceImage.hash, data.hash);
-      });
-  
-      // Sort images by distance (similarity)
-      validImages.sort((a, b) => a.distance - b.distance);
-  
-      // Generate signed URLs for images
-      const photos = await Promise.all(validImages.map(async data => {
-        const params = {
-          Bucket: S3_BUCKET,
+  try {
+    // List objects in the S3 bucket
+    const listParams = {
+      Bucket: process.env.S3_BUCKET_NAME,
+      Prefix: 'uploads/', // Assuming all images are stored under 'uploads/' prefix
+    };
+    const listCommand = new ListObjectsV2Command(listParams);
+    const s3Data = await s3.send(listCommand);
+
+    const imageFiles = s3Data.Contents.filter(item => /\.(jpg|jpeg|png|gif)$/i.test(item.Key));
+
+    // Get image hashes and distances
+    const imageDataPromises = imageFiles.map(async item => {
+      const key = item.Key;
+      const hash = await getImageHash(key);
+      return { key, hash };
+    });
+
+    const imageData = await Promise.all(imageDataPromises);
+    const validImages = imageData.filter(data => data.hash !== null);
+
+    if (validImages.length === 0) {
+      return res.json([]);
+    }
+
+    // Select a reference image (e.g., the first image)
+    const referenceImage = validImages[0];
+
+    // Compute Hamming distances
+    validImages.forEach(data => {
+      data.distance = hammingDistance(referenceImage.hash, data.hash);
+    });
+
+    // Sort images by distance (similarity)
+    validImages.sort((a, b) => a.distance - b.distance);
+
+    // Generate signed URLs for images
+    const photos = await Promise.all(
+      validImages.map(async data => {
+        const getObjectCommand = new GetObjectCommand({
+          Bucket: process.env.S3_BUCKET_NAME,
           Key: data.key,
-          Expires: 3600, // URL expires in 1 hour
-        };
-        const url = s3.getSignedUrl('getObject', params);
+        });
+        const url = await getSignedUrl(s3, getObjectCommand, { expiresIn: 3600 }); // URL expires in 1 hour
         return {
           url,
           caption: `Distance: ${data.distance}`,
           distance: data.distance,
         };
-      }));
-  
-      res.json(photos);
-    } catch (error) {
-      console.error('Error fetching images from S3:', error);
-      res.status(500).json({ error: 'Error loading photos' });
-    }
-  });
+      })
+    );
+
+    res.json(photos);
+  } catch (error) {
+    console.error('Error fetching images from S3:', error);
+    res.status(500).json({ error: 'Error loading photos' });
+  }
+});
+
 
 app.get('/', (req, res) => {
     const filePath = path.join(__dirname, 'dist', 'index.html');
@@ -185,17 +203,18 @@ app.post('/mms', async (req, res) => {
         const buffer = Buffer.from(arrayBuffer);
   
         // Define the S3 key (filename)
-        const fileExtension = '.jpg'; // Adjust based on the actual media type if possible
-        const key = `uploads/${Date.now()}-${From.replace('+', '')}${fileExtension}`;
-  
+        // const fileExtension = '.jpg'; // Adjust based on the actual media type if possible
+        // const key = `uploads/${Date.now()}-${From.replace('+', '')}${fileExtension}`;
+        const key = `uploads/${Date.now()}-${From.replace('+', '')}.jpg`;
         // Upload the image to S3
-        const params = {
-          Bucket: S3_BUCKET,
+        const uploadCommand = new PutObjectCommand({
+          Bucket: process.env.S3_BUCKET_NAME,
           Key: key,
           Body: buffer,
-          ContentType: 'image/jpeg', // Adjust based on the actual media type
-        };
-        await s3.putObject(params).promise();
+          ContentType: 'image/jpeg', 
+        });
+  
+        await s3.send(uploadCommand);
         console.log(`Saved media to S3: ${key}`);
   
         res.status(200).send('File received and saved');
