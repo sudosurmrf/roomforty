@@ -50,38 +50,40 @@ if (fs.existsSync(cacheFilePath)) {
     hashCache = JSON.parse(fs.readFileSync(cacheFilePath, 'utf-8'));
 }
 async function getImageHash(key) {
-    if (hashCache[key]) {
-      return hashCache[key];
-    }
-    try {
-      // Fetch the image from S3
-      const params = {
-        Bucket: S3_BUCKET,
-        Key: key,
-      };
-      const data = await s3.getObject(params).promise();
-  
-      // Save the image to a temporary file
-      const tempFilePath = path.join(__dirname, 'temp', key);
-      fs.mkdirSync(path.dirname(tempFilePath), { recursive: true });
-      fs.writeFileSync(tempFilePath, data.Body);
-  
-      // Compute the hash
-      const hash = await imghash.hash(tempFilePath, 16);
-  
-      // Update the cache
-      hashCache[key] = hash;
-      fs.writeFileSync(cacheFilePath, JSON.stringify(hashCache, null, 2));
-  
-      // Clean up the temporary file
-      fs.unlinkSync(tempFilePath);
-  
-      return hash;
-    } catch (error) {
-      console.error(`Error hashing image ${key}:`, error);
-      return null;
-    }
+  if (hashCache[key]) {
+    return hashCache[key];
   }
+
+  try {
+    // Fetch the image from S3 using GetObjectCommand
+    const command = new GetObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key,
+    });
+    const data = await s3.send(command);
+
+    // Save the image to a temporary file to compute its hash
+    const tempFilePath = path.join(__dirname, 'temp', path.basename(key));
+    fs.mkdirSync(path.dirname(tempFilePath), { recursive: true });
+    fs.writeFileSync(tempFilePath, Buffer.from(await data.Body.arrayBuffer()));
+
+    // Compute the hash of the image
+    const hash = await imghash.hash(tempFilePath, 16);
+
+    // Update the cache with the new hash and save it to the file
+    hashCache[key] = hash;
+    fs.writeFileSync(cacheFilePath, JSON.stringify(hashCache, null, 2));
+
+    // Clean up the temporary file
+    fs.unlinkSync(tempFilePath);
+
+    return hash;
+  } catch (error) {
+    console.error(`Error hashing image ${key}:`, error);
+    return null;
+  }
+}
+
 
 // Function to compute Hamming distance
 function hammingDistance(hash1, hash2) {
