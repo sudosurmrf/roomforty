@@ -49,6 +49,17 @@ let hashCache = {};
 if (fs.existsSync(cacheFilePath)) {
     hashCache = JSON.parse(fs.readFileSync(cacheFilePath, 'utf-8'));
 }
+
+// Function to convert a readable stream to a buffer
+async function streamToBuffer(stream) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on('data', chunk => chunks.push(chunk));
+    stream.on('end', () => resolve(Buffer.concat(chunks)));
+    stream.on('error', reject);
+  });
+}
+
 async function getImageHash(key) {
   if (hashCache[key]) {
     return hashCache[key];
@@ -62,11 +73,13 @@ async function getImageHash(key) {
     });
     const data = await s3.send(command);
 
-    // Save the image to a temporary file to compute its hash
+      // Convert the stream (data.Body) to a buffer
+    const buffer = await streamToBuffer(data.Body);
+
+    // Save the buffer to a temporary file to compute its hash
     const tempFilePath = path.join(__dirname, 'temp', path.basename(key));
     fs.mkdirSync(path.dirname(tempFilePath), { recursive: true });
-    fs.writeFileSync(tempFilePath, Buffer.from(await data.Body.arrayBuffer()));
-
+    fs.writeFileSync(tempFilePath, buffer);
     // Compute the hash of the image
     const hash = await imghash.hash(tempFilePath, 16);
 
@@ -83,7 +96,6 @@ async function getImageHash(key) {
     return null;
   }
 }
-
 
 // Function to compute Hamming distance
 function hammingDistance(hash1, hash2) {
